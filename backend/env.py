@@ -3,8 +3,12 @@ from dotenv import load_dotenv
 
 
 REQUIRED_ENV_VARS = [
-    "DATABASE_URL"
-    ]
+    "DATABASE_URL",
+    "CLOUDINARY_API_KEY",
+    "CLOUDINARY_API_SECRET",
+    "CLOUDINARY_CLOUD_NAME",
+]
+
 load_dotenv()
 
 
@@ -31,6 +35,10 @@ def validate_env():
 env_vars = validate_env()
 
 MONGO_URI = env_vars["DATABASE_URL"]
+CLOUDINARY_API_KEY = env_vars["CLOUDINARY_API_KEY"]
+CLOUDINARY_API_SECRET = env_vars["CLOUDINARY_API_SECRET"]
+CLOUDINARY_CLOUD_NAME = env_vars["CLOUDINARY_CLOUD_NAME"]
+
 
 
 

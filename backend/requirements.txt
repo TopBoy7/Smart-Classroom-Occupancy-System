@@ -3,5 +3,8 @@ uvicorn[standard]
 motor
 python-multipart
 pydantic
-opencv-python 
+opencv-python-headless
 ultralytics
+python-dotenv
+cloudinary
+websockets

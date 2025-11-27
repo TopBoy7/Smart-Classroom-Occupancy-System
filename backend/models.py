@@ -7,6 +7,8 @@ from bson import ObjectId
 class Classroom(BaseModel):
     id: Optional[str] = Field(default=None, alias="_id")
     classId: str
+    name: str  = None                  # ← NEW FIELD
+    latestImage: Optional[str] = None
     deviceId: str
     capacity: int
     occupancy: int = 0
@@ -17,5 +19,5 @@ class Classroom(BaseModel):
     @model_validator(mode="before")
     def convert_objectid_to_str(cls, values):
         if "_id" in values and isinstance(values["_id"], ObjectId):
-            values["_id"] = str(values["_id"])  # Convert ObjectId to string
+            values["_id"] = str(values["_id"])
         return values
