@@ -66,7 +66,7 @@ export default function CreateClassroomDialog({
             <Label htmlFor="classId">Class ID</Label>
             <Input
               id="classId"
-              placeholder="e.g., CS101"
+              placeholder="e.g., ELT"
               value={formData.classId}
               onChange={(e) =>
                 setFormData({ ...formData, classId: e.target.value })
@@ -79,7 +79,7 @@ export default function CreateClassroomDialog({
             <Label htmlFor="className">Class Name</Label>
             <Input
               id="className"
-              placeholder="e.g., Introduction to Computer Science"
+              placeholder="e.g., Enginerring Lecture Theatre"
               value={formData.className}
               onChange={(e) =>
                 setFormData({ ...formData, className: e.target.value })
@@ -109,7 +109,7 @@ export default function CreateClassroomDialog({
             <Label htmlFor="deviceId">Device ID (IoT Camera)</Label>
             <Input
               id="deviceId"
-              placeholder="e.g., CAMERA_001"
+              placeholder="e.g., dev-00123"
               value={formData.deviceId}
               onChange={(e) =>
                 setFormData({ ...formData, deviceId: e.target.value })

@@ -4,10 +4,14 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from typing import List
 from io import BytesIO
 import cv2
 import numpy as np
+import logging
 
 import database, models, schemas, env
 
@@ -26,9 +30,23 @@ cloudinary.config(
 )
 
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("smart-classroom")
+
+
 # -------------------------------------------------------
 # GLOBAL WEBSOCKET MANAGER
 # -------------------------------------------------------
+
+def serialize(obj):
+    if isinstance(obj, dict):
+        return {k: serialize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [serialize(v) for v in obj]
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    return obj
+
 class ConnectionManager:
     def __init__(self):
         self.active: List[WebSocket] = []
@@ -36,21 +54,26 @@ class ConnectionManager:
     async def connect(self, ws: WebSocket):
         await ws.accept()
         self.active.append(ws)
+        logger.info("WS connected: total=%d", len(self.active))
 
     def disconnect(self, ws: WebSocket):
         if ws in self.active:
             self.active.remove(ws)
+            logger.info("WS disconnected: total=%d", len(self.active))
 
     async def broadcast(self, data: dict):
+        logger.info("Broadcasting %s to %d clients", data.get("event"), len(self.active))
         dead = []
         for ws in self.active:
             try:
                 await ws.send_json(data)
-            except:
+            except Exception as e:
+                logger.exception("WS send failed: %s", e)
                 dead.append(ws)
 
         for ws in dead:
             self.disconnect(ws)
+        logger.info("Broadcast complete. sent=%d dead=%d", len(self.active), len(dead))
 
 
 manager = ConnectionManager()
@@ -76,8 +99,18 @@ async def websocket_endpoint(ws: WebSocket):
     await manager.connect(ws)
     try:
         while True:
-            await ws.receive_text()  # keep alive
+            try:
+                text = await ws.receive_text()
+                logger.info("Received from client WS: %s", text)
+            except WebSocketDisconnect:
+                raise
+            except Exception as e:
+                logger.exception("Error receiving from WS: %s", e)
+                break
     except WebSocketDisconnect:
+        manager.disconnect(ws)
+    except Exception:
+        logger.exception("WS handler error")
         manager.disconnect(ws)
 
 
@@ -146,8 +179,18 @@ async def update_classroom(classId: str, req: schemas.UpdateClassroomRequest):
 
     updated = await database.update_classroom_by_classId(classId, payload)
 
+    updated_dict = updated.model_dump()
+    if "_id" in updated_dict:
+        updated_dict["_id"] = str(updated_dict["_id"])
+    for dt_key in ("createdAt", "updatedAt"):
+        if dt_key in updated_dict and updated_dict[dt_key] is not None:
+            try:
+                updated_dict[dt_key] = updated_dict[dt_key].isoformat()
+            except Exception:
+                pass
+
     # WebSocket push
-    await manager.broadcast({"event": "classroom_updated", "classroom": updated.model_dump()})
+    await manager.broadcast(serialize({"event": "classroom_updated", "classroom": updated_dict}))
 
     return {
         "success": True,
@@ -211,9 +254,14 @@ async def upload_image(classId: str, deviceId: str = Form(...), file: UploadFile
     person_count = sum(1 for b in boxes if int(b.cls[0]) == 0)
     new_occupancy = min(person_count, classroom.capacity)
 
+    now_ng = datetime.now(ZoneInfo("Africa/Lagos"))
+    timestamp = now_ng.strftime("%d %b %Y, %I:%M %p").replace(" 0", " ")
     # Overlay text: occupancy / capacity
     label = f"Occupancy: {new_occupancy}/{classroom.capacity}"
     cv2.putText(img, label, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
+
+    # Overlay timestamp
+    cv2.putText(img, timestamp, (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
 
     # Encode annotated image to bytes
     _, encoded = cv2.imencode(".jpg", img)
@@ -235,11 +283,28 @@ async def upload_image(classId: str, deviceId: str = Form(...), file: UploadFile
     await database.update_classroom_by_classId(classId, {"occupancy": new_occupancy, "latestImage": new_url})
     updated = await database.get_classroom_by_classId(classId)
 
+    # prepare payload: ensure _id is a string and datetimes are serializable
+    updated_dict = updated.model_dump()
+    if "_id" in updated_dict:
+        try:
+            updated_dict["_id"] = str(updated_dict["_id"])
+        except Exception:
+            updated_dict["_id"] = updated_dict["_id"]
+    # convert datetimes if present
+    for dt_key in ("createdAt", "updatedAt"):
+        if dt_key in updated_dict and updated_dict[dt_key] is not None:
+            try:
+                updated_dict[dt_key] = updated_dict[dt_key].isoformat()
+            except Exception:
+                pass
+
+    logger.info("Broadcast payload prepared for classroom_image_update: %s", updated_dict)
+
     # Broadcast via WebSocket
-    await manager.broadcast({
+    await manager.broadcast(serialize({
         "event": "classroom_image_update",
-        "classroom": updated.model_dump()
-    })
+        "classroom": updated_dict
+    }))
 
     # Return updated classroom JSON only
     return schemas.ResponseModel(

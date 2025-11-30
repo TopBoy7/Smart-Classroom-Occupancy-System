@@ -14,7 +14,7 @@ export interface ClassroomData {
 }
 
 export interface Classroom {
-  _id: string;
+  id: string;
   classId: string;
   className: string;
   capacity: number;

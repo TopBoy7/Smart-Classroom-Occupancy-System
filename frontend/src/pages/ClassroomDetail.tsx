@@ -26,7 +26,6 @@ const ClassroomDetail = () => {
       try {
         setError(null);
         const data = await api.classrooms.get(classId);
-        console.log(data);
         
         setClassroom(data);
       } catch (err) {
@@ -41,12 +40,15 @@ const ClassroomDetail = () => {
 
   // Real-time updates via WebSocket
   useClassroomWebSocket((message) => {
+    console.log("WS incoming:", message);
+    const incoming = message.classroom;
+    if (!classroom) return;
+
     if (
-      (message.event === 'classroom_updated' ||
-        message.event === 'classroom_image_update') &&
-      message.classroom._id === classroom?._id
+      incoming.id === classroom.id ||
+      incoming.classId === classroom.classId
     ) {
-      setClassroom(message.classroom);
+      setClassroom(incoming);
     }
   });
 

@@ -36,16 +36,19 @@ const Dashboard = () => {
 
   // WebSocket listener for real-time updates
   const handleWSMessage = useCallback((message: WebSocketMessage) => {
-    if (
-      message.event === 'classroom_updated' ||
-      message.event === 'classroom_image_update'
-    ) {
-      setClassrooms((prev) =>
-        prev.map((c) =>
-          c._id === message.classroom._id ? message.classroom : c
-        )
+    const incoming = message.classroom;
+    setClassrooms((prev) => {
+      const idx = prev.findIndex(
+        (c) => c.id === incoming.id || c.classId === incoming.classId
       );
-    }
+      if (idx !== -1) {
+        const copy = [...prev];
+        copy[idx] = incoming;
+        return copy;
+      }
+      // if not found, prepend (or push) the incoming classroom
+      return [incoming, ...prev];
+    });
   }, []);
 
   useClassroomWebSocket(handleWSMessage);
@@ -103,7 +106,7 @@ const Dashboard = () => {
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {classrooms.map((classroom) => (
-              <ClassroomCard key={classroom._id} classroom={classroom} />
+              <ClassroomCard key={classroom.id} classroom={classroom} />
             ))}
           </div>
         )}
