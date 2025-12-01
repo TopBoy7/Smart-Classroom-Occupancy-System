@@ -30,6 +30,7 @@ class UpdateClassroomRequest(BaseModel):
     capacity: Union[int, None]
     occupancy: Union[int, None]
     latestImage: Union[str, None]
+    classId: Union[str, None] 
 
     @field_validator("capacity")
     def capacity_non_negative(cls, v):

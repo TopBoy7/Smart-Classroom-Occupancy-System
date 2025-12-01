@@ -3,11 +3,12 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { useClassroomWebSocket } from '@/hooks/useClassroomWebSocket';
 import Navigation from '@/components/Navigation';
+import EditClassroomDialog from '@/components/EditClassroomDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Trash2, Users, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, Trash2, Users, Calendar, Clock, Edit2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import type { Classroom } from '@/types/classroom';
+import type { Classroom, UpdateClassroomRequest } from '@/types/classroom';
 
 const ClassroomDetail = () => {
   const { classId } = useParams<{ classId: string }>();
@@ -16,17 +17,15 @@ const ClassroomDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   useEffect(() => {
     const fetchClassroom = async () => {
-         console.log(classId);
       if (!classId) return;
-   
-      
+
       try {
         setError(null);
         const data = await api.classrooms.get(classId);
-        
         setClassroom(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load classroom');
@@ -40,12 +39,12 @@ const ClassroomDetail = () => {
 
   // Real-time updates via WebSocket
   useClassroomWebSocket((message) => {
-    console.log("WS incoming:", message);
+    console.log('WS incoming:', message);
     const incoming = message.classroom;
     if (!classroom) return;
 
     if (
-      incoming.id === classroom.id ||
+      incoming._id === classroom.id ||
       incoming.classId === classroom.classId
     ) {
       setClassroom(incoming);
@@ -66,18 +65,50 @@ const ClassroomDetail = () => {
     }
   };
 
+  const handleEdit = async (oldClassId: string, updateData: UpdateClassroomRequest) => {
+    try {
+      const updated = await api.classrooms.update(oldClassId, updateData);
+      setClassroom(updated);
+      // If classId changed, navigate to new URL
+      if (updateData.classId && updateData.classId !== oldClassId) {
+        navigate(`/classroom/${updateData.classId}`, {replace: true});
+      }
+    } catch (err) {
+      throw err;
+    }
+  };
+
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center">
-        Loading...
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading classroom...</p>
+        </div>
       </div>
     );
+
   if (error)
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-red-600">{error}</div>
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-4 py-8">
+          <Link to="/dashboard">
+            <Button variant="outline" className="mb-6">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+          <div className="text-center">
+            <div className="text-red-600 mb-4">{error}</div>
+            <Link to="/dashboard">
+              <Button>Return to Dashboard</Button>
+            </Link>
+          </div>
+        </div>
       </div>
     );
+
   if (!classroom)
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -149,7 +180,7 @@ const ClassroomDetail = () => {
           <div className="space-y-4">
             {/* Basic Info Card */}
             <Card className="border-2">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-start justify-between pb-3">
                 <div>
                   <CardTitle className="text-2xl">
                     {classroom.className}
@@ -158,6 +189,14 @@ const ClassroomDetail = () => {
                     Class ID: {classroom.classId}
                   </p>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowEditDialog(true)}
+                  title="Edit classroom details"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -207,7 +246,7 @@ const ClassroomDetail = () => {
                       {classroom.capacity}
                     </p>
                   </div>
-                  <div className="p-3 rounded-lg bg-success/10">
+                  <div className="p-3 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
                     <p className="text-xs text-muted-foreground mb-1">
                       Currently
                     </p>
@@ -215,7 +254,7 @@ const ClassroomDetail = () => {
                       {classroom.occupancy}
                     </p>
                   </div>
-                  <div className="p-3 rounded-lg bg-warning/10 col-span-2">
+                  <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-900/30 col-span-2">
                     <p className="text-xs text-muted-foreground mb-1">
                       Available Seats
                     </p>
@@ -274,6 +313,14 @@ const ClassroomDetail = () => {
           </div>
         </div>
       </main>
+
+      {/* Edit Dialog */}
+      <EditClassroomDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        classroom={classroom}
+        onSubmit={handleEdit}
+      />
     </div>
   );
 };

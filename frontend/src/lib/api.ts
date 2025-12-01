@@ -5,7 +5,12 @@ export const api = {
   classrooms: {
     list: async () => {
       const res = await fetch(`${API_BASE}/classrooms`);
-      if (!res.ok) throw new Error('Failed to fetch classrooms');
+      if (!res.ok){
+            {
+        const errorData = await res.json();
+        throw new Error(errorData?.detail || 'Failed to fetch classrooms');
+      }
+      }
       const data = await res.json();
       return data.data.classrooms;
     },
@@ -26,17 +31,36 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error('Failed to create classroom');
+      if (!res.ok)
+            {
+        const errorData = await res.json();
+        throw new Error(errorData?.detail || 'Failed to create classroom');
+      }
+      
       const data = await res.json();
       return data.data;
     },
-    update: async (classId: string, payload: Record<string, any>) => {
+    update: async (
+      classId: string,
+      payload: {
+        classId?: string;
+        className?: string;
+        capacity?: number;
+        deviceId?: string;
+        latestImage?: string;
+        occupancy?: number;
+      }
+    ) => {
       const res = await fetch(`${API_BASE}/classrooms/${classId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error('Failed to update classroom');
+      if (!res.ok) 
+      {
+        const errorData = await res.json();
+        throw new Error(errorData?.detail || 'Failed to update classroom');
+      }
       const data = await res.json();
       return data.data.classroom;
     },
@@ -44,7 +68,10 @@ export const api = {
       const res = await fetch(`${API_BASE}/classrooms/${classId}`, {
         method: 'DELETE',
       });
-      if (!res.ok) throw new Error('Failed to delete classroom');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData?.detail || 'Failed to delete classroom');
+      }
       return true;
     },
   },

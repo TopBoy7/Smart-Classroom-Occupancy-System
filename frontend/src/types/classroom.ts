@@ -32,6 +32,16 @@ export interface CreateClassroomRequest {
   deviceId: string;
 }
 
+export interface UpdateClassroomRequest {
+  classId: string;
+  className: string;
+  capacity: number;
+  deviceId: string;
+  occupancy: number;
+  latestImage: string;
+
+}
+
 export interface ClassroomResponse {
   success: boolean;
   message: string;

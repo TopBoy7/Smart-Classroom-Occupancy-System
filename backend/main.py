@@ -168,10 +168,15 @@ async def get_classroom(classId: str):
 @app.put("/classrooms/{classId}", response_model=schemas.ResponseModel)
 async def update_classroom(classId: str, req: schemas.UpdateClassroomRequest):
     payload = {k: v for k, v in req.model_dump().items() if v is not None}
-
     existing = await database.get_classroom_by_classId(classId)
     if not existing:
         raise HTTPException(404, "classroom not found")
+
+    if payload.get("classId") != classId:
+        # Check for classId uniqueness
+        other = await database.get_classroom_by_classId(payload["classId"])
+        if other:
+            raise HTTPException(409, "new classId already exists")
 
     if "occupancy" in payload:
         if payload["occupancy"] > (payload.get("capacity") or existing.capacity):
