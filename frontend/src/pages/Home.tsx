@@ -97,8 +97,7 @@ const Home = () => {
               </div>
               <h3 className="font-bold text-lg mb-2">Reliable System</h3>
               <p className="text-muted-foreground text-sm">
-                ESP32 microcontroller with PIR and ultrasonic sensors for
-                accurate detection.
+                ESP32 microcontroller with camera for accurate detection.
               </p>
             </CardContent>
           </Card>
@@ -113,24 +112,35 @@ const Home = () => {
               <h2 className="text-2xl font-bold mb-4">System Architecture</h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
-                  <strong className="text-foreground">Hardware:</strong> ESP32
-                  microcontroller, PIR motion sensors, and ultrasonic distance
-                  sensors for reliable occupancy detection.
+                  <strong className="text-foreground">Edge Node:</strong>{" "}
+                  ESP32-CAM microcontrollers are deployed in classrooms to
+                  capture images and perform real-time occupancy detection at
+                  the edge, minimizing latency and reducing backend processing
+                  load.
                 </p>
                 <p>
                   <strong className="text-foreground">Communication:</strong>{" "}
-                  Wi-Fi enabled wireless data transmission using HTTP/MQTT
-                  protocols for real-time updates.
+                  Wireless data transmission over Wi-Fi using HTTP/HTTPS for
+                  periodic image uploads and WebSocket for real-time front-end
+                  updates and immediate classroom status notifications.
+                </p>
+                <p>
+                  <strong className="text-foreground">Backend:</strong> A Python
+                  FastAPI server integrated with YOLOv8n enabling efficient
+                  object detection, anomaly detection, and occupancy analysis
+                  for data-driven classroom management.
                 </p>
                 <p>
                   <strong className="text-foreground">AI Integration:</strong>{" "}
-                  Machine learning models for pattern recognition, anomaly
-                  detection, and predictive analytics.
+                  Server-side machine learning pipeline utilizing YOLOv8n for
+                  human detection, pattern recognition, and predictive analytics
+                  to optimize classroom utilization.
                 </p>
                 <p>
-                  <strong className="text-foreground">Dashboard:</strong>{" "}
-                  React-based web interface providing intuitive visualization of
-                  classroom status and usage metrics.
+                  <strong className="text-foreground">Frontend:</strong> React
+                  (TypeScript) dashboard hosted on Vercel providing real-time
+                  visualization of classroom occupancy, detailed usage metrics,
+                  and live updates powered by WebSocket streams.
                 </p>
               </div>
             </CardContent>
