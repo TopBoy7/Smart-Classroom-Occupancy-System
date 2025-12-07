@@ -1,6 +1,5 @@
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockUsagePatterns, mockClassrooms } from "@/data/mockData";
 import { TrendingUp, Clock, Calendar, BarChart3 } from "lucide-react";
 import {
   BarChart,
@@ -14,26 +13,55 @@ import {
   Line,
 } from "recharts";
 
-const Analytics = () => {
-  const totalOccupied = mockClassrooms.filter(
-    (c) => c.status === "occupied"
-  ).length;
-  const avgOccupancy = Math.round(
-    mockClassrooms.reduce((sum, c) => sum + (c.occupancyPercentage || 0), 0) /
-      mockClassrooms.length
-  );
+interface UsagePattern {
+  hour: number;
+  occupancyRate: number;
+}
 
-  const peakHour = mockUsagePatterns.reduce((max, pattern) =>
-    pattern.occupancyRate > max.occupancyRate ? pattern : max
-  );
+interface Classroom {
+  id: string;
+  name: string;
+  occupancyPercentage: number;
+}
 
-  const dailyData = [
-    { day: "Mon", occupancy: 78 },
-    { day: "Tue", occupancy: 82 },
-    { day: "Wed", occupancy: 75 },
-    { day: "Thu", occupancy: 88 },
-    { day: "Fri", occupancy: 80 },
-  ];
+interface AnalyticsProps {
+  classrooms: Classroom[];
+  usagePatterns: UsagePattern[];
+  weeklyData?: Array<{ day: string; occupancy: number }>;
+}
+
+const Analytics = ({
+  classrooms = [],
+  usagePatterns = [],
+  weeklyData = [],
+}: AnalyticsProps) => {
+  // Calculate average occupancy
+  const avgOccupancy =
+    classrooms.length > 0
+      ? Math.round(
+          classrooms.reduce((sum, c) => sum + (c.occupancyPercentage || 0), 0) /
+            classrooms.length
+        )
+      : 0;
+
+  // Find peak hour
+  const peakHour =
+    usagePatterns.length > 0
+      ? usagePatterns.reduce((max, pattern) =>
+          pattern.occupancyRate > max.occupancyRate ? pattern : max
+        )
+      : { hour: 0, occupancyRate: 0 };
+
+  // Calculate weekly trend
+  const weeklyTrend =
+    weeklyData.length >= 2
+      ? Math.round(
+          ((weeklyData[weeklyData.length - 1].occupancy -
+            weeklyData[0].occupancy) /
+            weeklyData[0].occupancy) *
+            100
+        )
+      : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,7 +87,7 @@ const Analytics = () => {
             <CardContent>
               <p className="text-3xl font-bold text-primary">{avgOccupancy}%</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Across all monitored classrooms
+                Across {classrooms.length} monitored classrooms
               </p>
             </CardContent>
           </Card>
@@ -89,9 +117,12 @@ const Analytics = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-success">+12%</p>
+              <p className="text-3xl font-bold text-success">
+                {weeklyTrend > 0 ? "+" : ""}
+                {weeklyTrend}%
+              </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Increase from last week
+                {weeklyTrend > 0 ? "Increase" : "Decrease"} from week start
               </p>
             </CardContent>
           </Card>
@@ -107,38 +138,46 @@ const Analytics = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={mockUsagePatterns}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="hsl(var(--border))"
-                  />
-                  <XAxis
-                    dataKey="hour"
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: "hsl(var(--muted-foreground))" }}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: "hsl(var(--muted-foreground))" }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Bar
-                    dataKey="occupancyRate"
-                    fill="hsl(var(--primary))"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-              <p className="text-sm text-muted-foreground mt-4 text-center">
-                Peak hours: 10:00 AM - 2:00 PM
-              </p>
+              {usagePatterns.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={usagePatterns}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="hsl(var(--border))"
+                      />
+                      <XAxis
+                        dataKey="hour"
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fill: "hsl(var(--muted-foreground))" }}
+                      />
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fill: "hsl(var(--muted-foreground))" }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                        }}
+                      />
+                      <Bar
+                        dataKey="occupancyRate"
+                        fill="hsl(var(--primary))"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <p className="text-sm text-muted-foreground mt-4 text-center">
+                    Peak hour: {peakHour.hour}:00 - {peakHour.hour + 1}:00
+                  </p>
+                </>
+              ) : (
+                <p className="text-center text-muted-foreground">
+                  No data available
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -150,40 +189,48 @@ const Analytics = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={dailyData}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="hsl(var(--border))"
-                  />
-                  <XAxis
-                    dataKey="day"
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: "hsl(var(--muted-foreground))" }}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: "hsl(var(--muted-foreground))" }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="occupancy"
-                    stroke="hsl(var(--success))"
-                    strokeWidth={3}
-                    dot={{ fill: "hsl(var(--success))", r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-              <p className="text-sm text-muted-foreground mt-4 text-center">
-                Thursday shows highest utilization
-              </p>
+              {weeklyData.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={weeklyData}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="hsl(var(--border))"
+                      />
+                      <XAxis
+                        dataKey="day"
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fill: "hsl(var(--muted-foreground))" }}
+                      />
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fill: "hsl(var(--muted-foreground))" }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="occupancy"
+                        stroke="hsl(var(--success))"
+                        strokeWidth={3}
+                        dot={{ fill: "hsl(var(--success))", r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  <p className="text-sm text-muted-foreground mt-4 text-center">
+                    {weeklyData.length} days of data
+                  </p>
+                </>
+              ) : (
+                <p className="text-center text-muted-foreground">
+                  No data available
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -200,23 +247,22 @@ const Analytics = () => {
             <div className="p-4 rounded-lg bg-background/50 border border-border">
               <h4 className="font-semibold mb-2">📊 Usage Forecast</h4>
               <p className="text-sm text-muted-foreground">
-                Based on historical patterns, expect 85% occupancy during
-                tomorrow's peak hours (10:00 AM - 2:00 PM).
+                Expected peak occupancy: {peakHour.occupancyRate}% at{" "}
+                {peakHour.hour}:00
               </p>
             </div>
             <div className="p-4 rounded-lg bg-background/50 border border-border">
               <h4 className="font-semibold mb-2">💡 Optimization Suggestion</h4>
               <p className="text-sm text-muted-foreground">
-                ENG-102 and CS-302 show consistent low utilization during
-                afternoon hours. Consider reassigning scheduled classes to
-                maximize space efficiency.
+                Current average occupancy is {avgOccupancy}%. Consider
+                redistributing classes for optimal space utilization.
               </p>
             </div>
             <div className="p-4 rounded-lg bg-background/50 border border-border">
               <h4 className="font-semibold mb-2">⚠️ Anomaly Detection</h4>
               <p className="text-sm text-muted-foreground">
-                No anomalies detected in the past 24 hours. All sensor readings
-                are within expected ranges.
+                No anomalies detected. All sensor readings are within expected
+                ranges.
               </p>
             </div>
           </CardContent>

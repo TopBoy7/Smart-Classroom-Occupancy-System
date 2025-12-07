@@ -12,9 +12,8 @@ const Home = () => {
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20">
         <div className="text-center max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full mb-6">
-            <Activity className="h-4 w-4" />
-            <span className="text-sm font-medium">University of Lagos</span>
+          <div className="mb-6">
+            <img src="/cam.png" alt="Chakam" className="h-16 w-16 mx-auto" />
           </div>
           <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             Chakam
@@ -107,16 +106,111 @@ const Home = () => {
       {/* Technical Overview */}
 
       {/* Footer */}
-      <footer className="border-t border-border mt-20">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center text-muted-foreground">
-            <p className="mb-2">
-              Smart Classroom Occupancy Detection and Monitoring System
+      <footer className="bg-muted/50 py-12 px-4">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div>
+            <div className="flex items-center space-x-2 mb-4">
+              <img src="/cam.png" className="h-10 w-10" alt="Chakam Logo" />
+              <span className="text-foreground font-semibold">Chakam</span>
+            </div>
+            <p className="text-muted-foreground text-sm max-w-sm">
+              Intelligent classroom monitoring and analytics platform for
+              efficient space utilization.
             </p>
-            <p className="text-sm">
-              Department of Computer Engineering • University of Lagos
-            </p>
+            <div className="flex space-x-3 mt-4">
+              <a
+                href="#twitter"
+                className="text-muted-foreground hover:text-foreground transition"
+              >
+                𝕏
+              </a>
+              <a
+                href="#facebook"
+                className="text-muted-foreground hover:text-foreground transition"
+              >
+                f
+              </a>
+              <a
+                href="#linkedin"
+                className="text-muted-foreground hover:text-foreground transition"
+              >
+                in
+              </a>
+            </div>
           </div>
+
+          <div>
+            <h6 className="text-foreground font-semibold mb-4">Quick Links</h6>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>
+                <Link
+                  to="/dashboard"
+                  className="hover:text-foreground transition"
+                >
+                  Dashboard
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/analytics"
+                  className="hover:text-foreground transition"
+                >
+                  Analytics
+                </Link>
+              </li>
+              <li>
+                <a href="#about" className="hover:text-foreground transition">
+                  About
+                </a>
+              </li>
+              <li>
+                <a href="#contact" className="hover:text-foreground transition">
+                  Contact
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h6 className="text-foreground font-semibold mb-4">Resources</h6>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>
+                <a href="#privacy" className="hover:text-foreground transition">
+                  Privacy Policy
+                </a>
+              </li>
+              <li>
+                <a href="#terms" className="hover:text-foreground transition">
+                  Terms of Use
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#documentation"
+                  className="hover:text-foreground transition"
+                >
+                  Documentation
+                </a>
+              </li>
+              <li>
+                <a href="#faq" className="hover:text-foreground transition">
+                  FAQ
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h6 className="text-foreground font-semibold mb-4">Contact Info</h6>
+            <ul className="space-y-3 text-sm text-muted-foreground">
+              <li>Email: info@chakam.com</li>
+              <li>Phone: +1 (555) 123-4567</li>
+              <li>Support: chakam_support@chakam.com</li>
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} Chakam. All rights reserved.</p>
         </div>
       </footer>
     </div>
