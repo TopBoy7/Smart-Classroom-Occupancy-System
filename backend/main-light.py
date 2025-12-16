@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import os
 import logging
 from datetime import datetime
@@ -7,18 +11,22 @@ from typing import List
 from fastapi import (
     FastAPI, HTTPException,
     UploadFile, File, Form,
-    WebSocket, WebSocketDisconnect
+    WebSocket, WebSocketDisconnect,
+    BackgroundTasks
 )
+
 from fastapi.middleware.cors import CORSMiddleware
 
 import httpx
-from dotenv import load_dotenv
+
+
+from send_email import send_occupancy_alert
+
 
 # your existing modules (same as in your main app)
 import database, models, schemas, env
 
 # load .env (optional)
-load_dotenv()
 
 # -------------------------------------------------------
 # CONFIG
@@ -166,14 +174,17 @@ async def get_classroom(classId: str):
 
 
 @app.put("/classrooms/{classId}", response_model=schemas.ResponseModel)
-async def update_classroom(classId: str, req: schemas.UpdateClassroomRequest):
+async def update_classroom(
+    classId: str,
+    req: schemas.UpdateClassroomRequest,
+    background_tasks: BackgroundTasks,   # 👈 ADD THIS
+):
     payload = {k: v for k, v in req.model_dump().items() if v is not None}
     existing = await database.get_classroom_by_classId(classId)
     if not existing:
         raise HTTPException(404, "classroom not found")
 
-    if payload.get("classId") != classId:
-        # Check for classId uniqueness
+    if payload.get("classId") and payload.get("classId") != classId:
         other = await database.get_classroom_by_classId(payload["classId"])
         if other:
             raise HTTPException(409, "new classId already exists")
@@ -183,15 +194,47 @@ async def update_classroom(classId: str, req: schemas.UpdateClassroomRequest):
     updated_dict = updated.model_dump()
     if "_id" in updated_dict:
         updated_dict["_id"] = str(updated_dict["_id"])
+
     for dt_key in ("createdAt", "updatedAt"):
-        if dt_key in updated_dict and updated_dict[dt_key] is not None:
+        if updated_dict.get(dt_key):
             try:
                 updated_dict[dt_key] = updated_dict[dt_key].isoformat()
             except Exception:
                 pass
 
-    # WebSocket push
-    await manager.broadcast(serialize({"event": "classroom_updated", "classroom": updated_dict}))
+    # 🔔 WebSocket push (immediate)
+    await manager.broadcast(
+        serialize({
+            "event": "classroom_updated",
+            "classroom": updated_dict
+        })
+    )
+
+    # 📧 OCCUPANCY EMAIL (scheduled, non-blocking)
+    try:
+        occupancy_after = updated.occupancy
+        capacity_after = updated.capacity
+        class_name = updated_dict.get("className") or "Unknown Classroom"
+
+
+        is_over_after = (
+            occupancy_after is not None
+            and capacity_after is not None
+            and occupancy_after > capacity_after
+        )
+
+        if is_over_after:
+            print("Exceeded!")
+            background_tasks.add_task(
+                send_occupancy_alert,
+                to_email="okefejoseph9@gmail.com",
+                class_id=classId,
+                class_name=class_name,
+                occupancy=occupancy_after,
+                capacity=capacity_after,
+            )
+    except Exception as e:
+        logger.exception("Failed to schedule occupancy alert email: %s", e)
 
     return {
         "success": True,
@@ -217,11 +260,12 @@ async def delete_classroom(classId: str):
 # IMAGE ENDPOINT (FORWARD to HEAVY BACKEND)
 # -------------------------------------------------------
 @app.post("/classrooms/{classId}/image", response_model=schemas.ResponseModel)
-async def upload_image(classId: str, deviceId: str = Form(...), file: UploadFile = File(...)):
-    """
-    Forward the received image to the heavy backend (HEAVY_BACKEND_URL).
-    Only broadcast classroom updates; errors do not trigger broadcast.
-    """
+async def upload_image(
+    classId: str,
+    background_tasks: BackgroundTasks,
+    deviceId: str = Form(...),
+    file: UploadFile = File(...)
+):
     classroom = await database.get_classroom_by_classId(classId)
     if not classroom:
         raise HTTPException(404, "classroom not found")
@@ -242,28 +286,51 @@ async def upload_image(classId: str, deviceId: str = Form(...), file: UploadFile
         resp.raise_for_status()
         resp_json = resp.json()
 
-        # Extract classroom update if present
         classroom_payload = resp_json.get("data", {}).get("classroom")
+
         if classroom_payload:
-            # normalize _id and datetimes
+            # Normalize
             if "_id" in classroom_payload:
                 classroom_payload["_id"] = str(classroom_payload["_id"])
+
             for dt_key in ("createdAt", "updatedAt"):
-                if dt_key in classroom_payload and classroom_payload[dt_key] is not None:
+                if classroom_payload.get(dt_key):
                     if isinstance(classroom_payload[dt_key], datetime):
                         classroom_payload[dt_key] = classroom_payload[dt_key].isoformat()
 
-            # Broadcast only the classroom update
+            # 🔊 WebSocket first
             await manager.broadcast(serialize({
                 "event": "classroom_image_update",
                 "classroom": classroom_payload
             }))
 
+            # ✉️ Schedule email (NON-BLOCKING)
+            occupancy_after = classroom_payload.get("occupancy")
+            capacity_after = classroom_payload.get("capacity")
+            class_name = classroom_payload.get("className") or "Unknown Classroom"
+
+   
+            is_over_after = (
+                occupancy_after is not None
+                and capacity_after is not None
+                and occupancy_after > capacity_after
+            )
+
+            if is_over_after:
+                print("Exceeded after image upload!")
+                background_tasks.add_task(
+                    send_occupancy_alert,
+                    "okefejoseph9@gmail.com",
+                    classId,
+                    class_name,
+                    occupancy_after,
+                    capacity_after
+                )
+
         return resp_json
 
     except Exception as e:
         logger.exception("Heavy backend unavailable or error occurred: %s", e)
-        # Do NOT broadcast, just return a response indicating the image service is down
         return schemas.ResponseModel(
             success=False,
             message="image analytics server currently unavailable",
