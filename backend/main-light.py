@@ -113,6 +113,16 @@ async def websocket_endpoint(ws: WebSocket):
         manager.disconnect(ws)
 
 
+
+
+@app.get("/healthz")
+async def healthz():
+    return {
+        "status": "ok",
+        "service": "smart-classroom-api",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
 # -------------------------------------------------------
 # CRUD ENDPOINTS (same behavior as your main app)
 # -------------------------------------------------------
