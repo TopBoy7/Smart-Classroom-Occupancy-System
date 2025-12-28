@@ -305,7 +305,6 @@ const ClassroomDetail = () => {
             )}
 
             {/* Delete Button */}
-<<<<<<< HEAD
             {isAdmin && (
               <Button
                 variant="destructive"
@@ -317,17 +316,6 @@ const ClassroomDetail = () => {
                 {deleting ? "Deleting..." : "Delete Classroom"}
               </Button>
             )}
-=======
-            {/* <Button
-              variant="destructive"
-              className="w-full"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              {deleting ? 'Deleting...' : 'Delete Classroom'}
-            </Button> */}
->>>>>>> 02a451abe38fe427157b989b2c44dbbddcad229c
           </div>
         </div>
       </main>
